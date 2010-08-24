@@ -1,0 +1,10 @@
+export(
+"coxmcem",
+"coxmeta.fixed",
+"coxmeta.mixed",
+"frailty.model.matrix",
+"make.clustered.ipd",
+"surv.covariance.variance",
+"ipd.meta.power",
+"Qt"
+)
