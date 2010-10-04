@@ -7,19 +7,14 @@ ipd.data,
 meta.data,
 sigma2,
 study.group.interaction,
-init.beta0,
-init.beta,
-error=1/1000)
+error=1/1000
+)
 
 {
 
-    q = length(init.beta0)
-    p = length(init.beta)
-    beta0 = init.beta0
-    beta = init.beta
-
-    meta.formula <- as.formula(paste(c(meta.formula,
-    		 as.character(ipd.formula)[3]),collapse="+"))
+    beta.index <- beta.indices(ipd.formula,meta.formula)
+    beta.ad = runif(max(beta.index$ad))
+    beta.ipd = runif(max(beta.index$ipd))
 
     #KNOWN COVARIANCE-VARIANCE FOR SURVIVAL OUTCOMES
     s <- meta.data[,all.vars(meta.formula)[[1]]]
@@ -38,14 +33,14 @@ error=1/1000)
     if(converge<error) last = TRUE
 
     #PATIENT LEVEL SCORE/INFO/LIKELIHOOD
-    NR.cox <- coxph.with.offset(ipd.formula,ipd.data,beta=beta)        
+    NR.cox <- coxph.with.offset(ipd.formula,ipd.data,beta=beta.ipd)        
 
     #STUDY LEVEL SCORE/INFO/LIKELIHOOD
-    NR.surv <- surv.with.offset(meta.formula,meta.data,beta=c(beta0,beta),Sigma)
+    NR.surv <- surv.with.offset(meta.formula,meta.data,beta=beta.ad,Sigma)
 
     #COMBINED
     NR <- combined.score.info(
-       	  p=p,q=q,
+          beta.index,
 	  U.cox=NR.cox$score,
 	  I.cox=NR.cox$info,
 	  loglik.cox=NR.cox$loglik,
@@ -54,22 +49,25 @@ error=1/1000)
 	  loglik.surv=NR.surv$loglik)
 
     #UPDATE
-    info <- matrix(NR$info,p+q,p+q)
-    update <- as.vector(solve(info)%*%NR$score)
+    update <- as.vector(solve(NR$info)%*%NR$score)
  
+    beta.ipd <- beta.ipd+update[beta.index$ipd]
+    beta.ad <- beta.ad+update[beta.index$ad]
+    beta <- beta.construct(beta.ipd,beta.ad,beta.index$shared)
 
-    beta0 <- beta0+update[1:q]
-    beta <- beta+update[(q+1):(p+q)]
     converge = abs(NR$loglik-loglik)
     loglik = NR$loglik
   
-    monitor$coef <- cbind(monitor$coef,c(beta0,beta))
+    monitor$coef <- cbind(monitor$coef,beta)
     monitor$loglik <- c(monitor$loglik,loglik)
     }
 
+    beta <- array(beta)
+    names(beta) <- beta.index$labels
+
 return(list(
-	coef=c(beta0,beta),
-	var=solve(matrix(info,p+q,p+q)),
+	coef=beta,
+	var=solve(NR$info),
 	loglik=loglik,
 	monitor=monitor))
 }
@@ -78,23 +76,23 @@ return(list(
 
 combined.score.info <- 
 
-function(p,q,U.cox,I.cox,loglik.cox,U.surv,I.surv,loglik.surv){
+function(beta.index,U.cox,I.cox,loglik.cox,U.surv,I.surv,loglik.surv){
 
-   U <- U.surv
-   U[-(1:q)] <- U[-(1:q)]+U.cox	#REMOVE THE PARTS NOT SHARED
+   p <- max(beta.index$ad)
+   U <- rep(0,p)
+   U[beta.index$ipd] <- U.cox
+   U[beta.index$ad] <- U[beta.index$ad]+U.surv
 
-   m <- matrix(0,p+q,p+q)
-   r <- row(m)
-   c <- col(m)
-   shared.index <- as.vector(r>q&c>q)
-
-   I <- I.surv
-   I[shared.index] <- I[shared.index]+I.cox
+   #COMBINING INFO
+   I <- matrix(0,p,p)
+   I[beta.index$ipd,beta.index$ipd] <- I.cox
+   I[beta.index$ad,beta.index$ad] <- I[beta.index$ad,beta.index$ad]+I.surv
 
    loglik <- loglik.cox+loglik.surv
 
    return(list(score=U,info=I,loglik=loglik))
 }
+
 
 coxph.with.offset <- function(formula,data,beta,offset){
 
@@ -125,7 +123,7 @@ coxph.with.offset <- function(formula,data,beta,offset){
 
    I <- matrix(as.vector(fit.detail$imat),nrow=p^2)
    I <- apply(I,1,sum)   
-
+   I <- matrix(I,p,p)
 
    return(list(score=U,info=I,loglik=fit$loglik[2]))
 }
@@ -143,6 +141,7 @@ surv.with.offset <- function(formula,data,beta,Sigma,offset){
 
    U <- as.vector(t(X)%*%solve(Sigma)%*%R)
    I <- as.vector(t(X)%*%solve(Sigma)%*%X)
+   I <- matrix(I,length(beta),length(beta))
 
    loglik <- -1/2*t(R)%*%solve(Sigma)%*%R
 

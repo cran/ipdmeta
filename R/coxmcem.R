@@ -22,7 +22,7 @@ function(
 #PARAMETER INITIALIZATION
 
    initialized <- 
-      coxmcem.initialize(fixed,random,data,p.beta,init.coef,init.vcov)
+      coxmcem.initialize.coxmcem(fixed,random,data,p.beta,init.coef,init.vcov)
 
    beta <- initialized$beta
    D <- initialized$D
@@ -75,7 +75,7 @@ loglik.cox <- apply(b.tilde,1,function(b){
 	L1
 })
 
-loglik.penalty <- penalty.loglik(t(b.tilde),D,n.groups)
+loglik.penalty <- penalty.loglik.coxmcem(t(b.tilde),D,n.groups)
 
 LL <- loglik.cox+loglik.penalty
 
@@ -205,10 +205,6 @@ function(fixed,random,type=c("coxme","phmm"))
 	}
 }
 
-get.diag <- function(x,...){
-   if(!is.matrix(x)) x else diag(x,...)
-}
-
 relative.criteria <- function(now,last){
 
    denom = abs(last)
@@ -232,7 +228,7 @@ coxme.loglik.cox.part <- function(f,data,Z,b,beta){
 
 ###LOGLIKELIHOOD OF NORMAL CONTRIBUTION
 
-penalty.loglik <- function(B,D,n.groups){
+penalty.loglik.coxmcem <- function(B,D,n.groups){
 
    #B HAS EACH COLUMN AS A SAMPLE OF FRAILTIES
    #FRAILTIES ARE ORDERED BY COVARIATE, I.E. INTERCEPT, TRT, ETC.
@@ -243,7 +239,7 @@ penalty.loglik <- function(B,D,n.groups){
 }
 
 
-coxmcem.initialize <- function(fixed,random,data,p.beta,init.coef,init.vcov){
+coxmcem.initialize.coxmcem <- function(fixed,random,data,p.beta,init.coef,init.vcov){
 
 #TRY COXME FOR INITIAL PARAMETERS AND FRAILTY PROPOSAL
 #IF FAILURE GO TO PHMM
@@ -302,10 +298,10 @@ coxme.variance <- function(B,weights,formula,data,beta,D,Z,n.groups){
 
 ###EFFECTS
 
-info.beta <- coxph.with.offset(formula,data,beta,Z%*%t(B)%*%weights)$info
+info.beta <- coxph.with.offset.coxmcem(formula,data,beta,Z%*%t(B)%*%weights)$info
 
 scores.beta <- apply(B,1,function(b){
-      coxph.with.offset(formula,data,beta,Z%*%b)$score
+      coxph.with.offset.coxmcem(formula,data,beta,Z%*%b)$score
 })
 
 U2.beta <- if(is.matrix(scores.beta)) apply(scores.beta,2,function(x){outer(x,x)}) else scores.beta^2
@@ -320,8 +316,8 @@ info.beta <- matrix(info.beta,p.beta,p.beta)
 
 ###VARIANCE
 
-info.var <- my.vcov.info(D,n.groups)
-U2.var <- my.vcov.score(B,D,n.groups)
+info.var <- my.vcov.info.coxmcem(D,n.groups)
+U2.var <- my.vcov.score.coxmcem(B,D,n.groups)
 
 U2.var <- U2.var%*%weights
 
@@ -331,7 +327,7 @@ return(list(info.beta=info.beta,info.var=info.var))
 }
 
 
-coxph.with.offset <- function(formula,data,beta,offset){
+coxph.with.offset.coxmcem <- function(formula,data,beta,offset){
 
 					#FORMULA CONSTRUCTION
    names <- all.vars(terms(formula))
@@ -366,7 +362,7 @@ coxph.with.offset <- function(formula,data,beta,offset){
 }
 
 
-my.vcov.info <- function(D,n.groups){
+my.vcov.info.coxmcem <- function(D,n.groups){
      
      f <- function(x){n.groups/(2*x^2)}
      theta <- get.diag(D)
@@ -374,7 +370,7 @@ my.vcov.info <- function(D,n.groups){
 
 }
 
-my.vcov.score <- function(B,D,n.groups){
+my.vcov.score.coxmcem <- function(B,D,n.groups){
 
 ###RETURNS THE QUADRATIC OF VCOV SCORES FOR DIAGONAL COMPONENTS
 

@@ -3,19 +3,22 @@
 \docType{package}
 
 \title{
-Mixed Model for Survival Meta-analysis
+Individual patient and Mixed-level Meta-analysis of
+Time-to-Event Outcomes
 }
 \description{
-Functions to perform mixed effects meta-analysis with a survival outcome. Methods for a complete IPD dataset or a partial IPD dataset and aggregate data in the form of survival estimates from a KM plot.
+Functions to estimate the power of an IPD meta-analysis covariate-treatment
+interaction (continuous or binary outcome), perform complete IPD meta-analysis and mixed-level
+meta-analysis with a survival outcome. 
 }
 
 \details{
 \tabular{ll}{
 Package: \tab ipdmeta\cr
 Type: \tab Package\cr
-Version: \tab 1.0\cr
-Date: \tab 2010-08-24\cr
-License: \tab GPL\cr
+Version: \tab 1.1\cr
+Date: \tab 2010-10-04\cr
+License: \tab GPL 2\cr
 LazyLoad: \tab yes\cr
 }
 }

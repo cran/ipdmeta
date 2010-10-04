@@ -1,4 +1,8 @@
-surv.covariance.variance <- function(surv,sigma2,group){
+surv.covariance.variance <- function(
+                         surv,
+                         sigma2,
+                         group)
+{
 
  tie.correction <- function(group){
  
@@ -49,3 +53,5 @@ R <- correlation.matrix(surv,n)
 
 return(Q*R)
 }
+
+

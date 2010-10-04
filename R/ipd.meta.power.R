@@ -1,38 +1,77 @@
-ipd.meta.power <- function(y0,y1,var0,var1,x0,x1,s20,s21,n0,n1,interaction,alpha=.05,logOR=TRUE,level=95){
+ipd.meta.power <- function(
+               y0,
+               y1,
+               var0,
+               var1,
+               x0,
+               x1,
+               s20,
+               s21,
+               n0,
+               n1,
+               interaction,
+               alpha=.05,
+               logOR=TRUE,
+               level=95)
+{
 
- #REPEATED CALLS TO IPD.META.POWER.BASE.FUNCTION
+#REPEATED CALLS TO IPD.META.POWER.BASE.FUNCTION
 
-types <- c("point","lower","upper")
+    types <- c("point","lower","upper")
 
-estimates <- lapply(types,function(x){
-ipd.meta.power.base.function(type=x,
+    estimates <- lapply(types,function(x){
+      ipd.meta.power.base.function(type=x,
 	y0=y0,y1=y1,var0=var0,var1=var1,x0=x0,x1=x1,s20=s20,s21=s21,
 	n0=n0,n1=n1,interaction=interaction,alpha=alpha,logOR=logOR,level=level)
  })
 
-SE <- estimates[[1]]$estimated.se
-SE.l <- estimates[[2]]$estimated.se
-SE.u <- estimates[[3]]$estimated.se
+    SE <- estimates[[1]]$estimated.se
+    SE.l <- estimates[[2]]$estimated.se
+    SE.u <- estimates[[3]]$estimated.se
 
-power <- estimates[[1]]$estimated.power
-power.lower <- estimates[[3]]$estimated.power
-power.upper <- estimates[[2]]$estimated.power
+    power <- estimates[[1]]$estimated.power
+    power.lower <- estimates[[3]]$estimated.power
+    power.upper <- estimates[[2]]$estimated.power
 
-return(list(estimated.power=power,
-power.lower=power.lower,power.upper=power.upper,
-estimated.se=SE,se.lower=SE.l,se.upper=SE.u,
-sigma=estimates[[1]]$sigma,sigma0=estimates[[1]]$sigma0,sigma1=estimates[[1]]$sigma1,level=level))
+return(
+      list(
+         estimated.power=power,
+         power.lower=power.lower,
+         power.upper=power.upper,
+         estimated.se=SE,
+         se.lower=SE.l,
+         se.upper=SE.u,
+         sigma=estimates[[1]]$sigma,
+         sigma0=estimates[[1]]$sigma0,
+         sigma1=estimates[[1]]$sigma1,
+         level=level)
+         )
 }
 
-### DEPENDENT FUNCTIONS
 
-ipd.meta.power.base.function <- function(y0,y1,var0,var1,x0,x1,s20,s21,n0,n1,interaction,alpha=.05,logOR=TRUE,level=95,type=c("point","lower","upper")){
+ipd.meta.power.base.function <- function(
+                             y0,
+                             y1,
+                             var0,
+                             var1,
+                             x0,
+                             x1,
+                             s20,
+                             s21,
+                             n0,
+                             n1,
+                             interaction,
+                             alpha=.05,
+                             logOR=TRUE,
+                             level=95,
+                             type=c("point","lower","upper"))
+{
 
 ######DEPENDENT FUNCTIONS
 
 power <- function(beta,se,alpha=.05){
-z <- qnorm(1-alpha/2)
-return(pnorm(-z+beta/se)+pnorm(-z-beta/se))
+      z <- qnorm(1-alpha/2)
+      return(pnorm(-z+beta/se)+pnorm(-z-beta/se))
 }
 
 get.weight <- function(logOR=TRUE,z){
@@ -230,7 +269,14 @@ Info <- construct.beta.info.matrix(n0,n1,x0,x1,s20,s21,d,e,f,g)
 SE <- sqrt(solve(Info)[4,4])*sqrt(weight)
 power <- power(beta=interaction,se=SE,alpha=alpha)
 
-return(list(estimated.power=power,estimated.se=SE,
-sigma=sigma,sigma0=sigma0,sigma1=sigma1,level=level))
+return(
+       list(
+       estimated.power=power,
+       estimated.se=SE,
+       sigma=sigma,
+       sigma0=sigma0,
+       sigma1=sigma1,
+       level=level)
+       )
 }
 

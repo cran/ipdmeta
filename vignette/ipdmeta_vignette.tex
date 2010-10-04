@@ -1,0 +1,59 @@
+\documentclass[11pt]{article}
+\usepackage[top=1in,bottom=1in,left=1in,right=1in]{geometry}
+\usepackage{Sweave,natbib,amsmath,url}
+\usepackage{hyperref} 
+\hypersetup{colorlinks,% 
+citecolor=black,% 
+filecolor=black,% 
+linkcolor=black,% 
+urlcolor=black } 
+\setcounter{tocdepth}{1}
+
+\title{Individual Patient Data Meta-Analysis of Time-to-Events}
+\author{Stephanie A. Kovalchik, \url{skoval@ucla.edu}}
+\date{\today}
+
+\begin{document}
+
+\maketitle
+
+The package \texttt{ipdmeta} provides methods for conducting a complete
+patient-level analysis and a  mixed-level
+meta-analysis when the primary endpoint is a time-to-event. The
+setting assumed is where the studies to be combined are randomized
+controlled intervention trials. For the mixed-level meta-analysis,
+aggregate-data trials are multivariate survival estimates (points
+along a KM plot) within-intervention, within-trial. In this vignette, extended examples with explanations are
+provided for the analytical functions \texttt{coxmcem} and
+\texttt{mlma}, for a full IPD and mixed-level meta-analysis, respectively.
+
+\input{ipdmeta_vignette.toc}
+
+\clearpage
+
+\section{Estimation for Cox Mixed Effects Model: coxmcem}
+
+\input{coxmcem}
+
+\section{Mixed-level Meta-analysis: mlma}
+
+\input{mlma}
+
+\clearpage
+
+\begin{figure}\center
+\includegraphics{haz.pdf}
+\caption{Baseline hazard estimated by study-level and patient-level
+  models of mixed-level meta-analysis. Dotted lines denote the 95\% CI.}
+\end{figure}
+
+\clearpage
+
+\label{ref:ref}
+
+\bibliographystyle{wileyj}
+
+\bibliography{/Users/skoval/meta/bib/survival,/Users/skoval/meta/bib/survival.meta,/Users/skoval/meta/bib/statistics,/Users/skoval/meta/bib/meta,/Users/skoval/meta/bib/ecological_bias,/Users/skoval/meta/bib/likelihood,/Users/skoval/meta/bib/bayes.meta,/Users/skoval/meta/bib/bayes,/Users/skoval/meta/bib/power_loss,/Users/skoval/meta/bib/cox_randomeffects,/Users/skoval/meta/bib/importance_sampling,/Users/skoval/bibliography/public_health,/Users/skoval/bibliography/cer,/Users/skoval/meta/bib/bhits}
+
+
+\end{document}

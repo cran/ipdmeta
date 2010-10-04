@@ -20,7 +20,6 @@ coxmeta.mixed(
    meta.groups,
    sigma2,
    study.group.interaction,
-   p,
    max.iter,
    min.sample,
    est.delta,
@@ -34,8 +33,10 @@ coxmeta.mixed(
 
 \arguments{
 
-  \item{ipd.formula}{Formula for patient-level Cox model as would be supplied to \code{coxph}}
-  \item{meta.formula}{Formula for study-level data with only the covariates that are not included in patient-level model, i.e. \code{surv~log(time)}}
+  \item{ipd.formula}{Formula for patient-level Cox model as would be
+      supplied to \code{coxph}}
+  \item{meta.formula}{Formula for study-level data
+      \code{surv~log(time)+trt*x}}
   \item{random.formula}{Formula of random effects conditional on group factor as would be specified in \code{coxme}, i.e. \code{~(1+trt|study)}}
   \item{ipd.data}{Patient-level data frame}
   \item{meta.data}{Study-level data frame containing survival estimates by study and treatment group}
@@ -43,7 +44,6 @@ coxmeta.mixed(
   \item{meta.groups}{Number of clusters in study-level dataset}
   \item{sigma2}{Variances for aggregate survival estimates of \code{meta.data}}
   \item{study.group.interaction}{Factor that is the study and treatment group interaction for \code{meta.data}}
-  \item{p}{Number of shared fixed effect parameters, i.e. covariates in \code{ipd.formula}}
   \item{max.iter}{Maximum iterations of MCEM algorithm}
   \item{min.sample}{Starting sample size for samples at E step} 
     \item{est.delta}{Stopping criterion threshold based on standardized relative differences for model parameters}
@@ -73,6 +73,9 @@ List of
 
 \details{
 
+This is a mixed effects extension of the model implemented by
+\code{coxmeta.fixed}.
+
 An MCEM algorithm is used to obtain the model estimates. The expectation step utilizes importance sampling based on a multivariate T distribution for the joint frailties. 
 
 \code{meta.data} are the survival estimates from a KM plot by treatment group. The data.frame should also contain the time measure corresponding to each estimate and the same covariates as in \code{ipd.formula} but defined at the aggregate-level. For patient-level covariates, the treatment-within-study sample average is used.
@@ -100,14 +103,39 @@ set.seed(401)
 #UNIVARIATE FRAILTY BY STUDY FACTOR
 
 fit <- coxmeta.mixed(
-    Surv(time,event)~trt,surv~log(time),~(1|group),
+    Surv(time,event)~trt,surv~log(time)+trt,~(1|group),
     ipd.data,
     meta.data,
     ipd.groups=8,meta.groups=2,
     meta.data$sigma2,
     meta.data$sub.group,
-    p=1,max.iter=5,
-    min.sample=200,est.delta=.05,mc.step=1.5,df=10
+    max.iter=5,
+    min.sample=200,
+    est.delta=.05,mc.step=1.5,df=10
+    )
+
+fit$coef				#MODEL FIT
+sqrt(diag(fit$var$coef))		#STANDARD ERROR
+
+
+sqrt(diag(fit$vcov))	#ESTIMATED FRAILTY STANDARD DEVIATION
+
+###SEPARATION OF STUDY-LEVEL AND PATIENT-LEVEL COVARIATE
+
+ipd.data$x.bar <- rep(tapply(ipd.data$x,ipd.data$group,mean),table(ipd.data$group))
+ipd.data$x.c <- ipd.data$x-ipd.data$x.bar
+meta.data$x.bar <- meta.data$x
+
+fit <- coxmeta.mixed(
+    Surv(time,event)~trt+x.c+x.bar,surv~log(time)+trt+x.bar,~(1|group),
+    ipd.data,
+    meta.data,
+    ipd.groups=8,meta.groups=2,
+    meta.data$sigma2,
+    meta.data$sub.group,
+    max.iter=5,
+    min.sample=200,
+    est.delta=.05,mc.step=1.5,df=10
     )
 
 fit$coef				#MODEL FIT

@@ -26,3 +26,12 @@ Matrix with row a cluster and column 1 to the number of effects.
 
 
 \author{S. Kovalchik \email{skoval@ucla.edu}}
+
+\examples{
+
+#CONSIDER 10 GROUPS WITH BIVARIATE FRAILTY 
+
+frailties <- 1:20
+cluster.subvector.matrix(frailties,10)
+
+}

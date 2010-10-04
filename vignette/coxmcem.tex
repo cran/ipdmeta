@@ -1,0 +1,372 @@
+\subsection{Description}
+
+The Cox mixed effects model is an extension of the standard Cox
+regression model for censored data \cite{Cox1972a,Cox1975a}. It
+suitable for censored data where the unit of analysis is clustered in
+some way, for example, children within households. It builds on
+frailty models by allowing for more complex random effects structures
+corresponding to more complex grouping, for example, twins among
+siblings within household. The general framework has also been
+described as a proportional hazards mixed model or multivariate
+frailty model. 
+
+Estimation approaches have included approximate and sampling
+methods. Approximate methods are based on a Laplace approximation to
+the marginal log-likelihood \cite{Ripatti2000a}. This is implemented
+by the package \texttt{coxme} of Therneau \cite{Therneau2009a}. It is well-known that the
+loss of information with the approximation results in an
+underestimation of the parameter standard errors \cite{Abrahantes2007a}.
+
+Sampling methods take an expectation-maximization approach which has
+the advantage of retaining all information on the model
+parameters. Sampling is required at the E-step. Vaida and Xu (2000) propose
+a Gibbs adaptive rejection sampling method to sample the posterior
+frailties given a multivariate-normal prior \cite{Vaida2000a}. This
+approach is implemented with the package \texttt{phmm}
+\cite{Donohue2010a}. Ripatti, Larsen and Palmgren (2002) suggest a rejection sampler; the author is not
+aware of any software for this strategy \cite{Ripatti2002a}. The difficulty
+with sampling approaches is that convergence has to be checked at the
+E-step and is a challenge to automate. 
+
+The \texttt{coxmcem} uses importance sampling to obtain averages for
+the multivariate frailties at the E-step. Booth and Hobert (1999) give a description of
+the general approach for generalized linear mixed models
+\cite{Booth1999a}. The appeal of an importance-sample is that it obviates the need for
+convergence to the target distribution while retaining all information
+about the model parameters. The proposal density for the
+\texttt{coxmcem} implementation is a
+multivariate T whose location is the maximum-likelihood estimate of
+the frailties at the current EM iteration. Monitoring the MC error and
+parameter estimates follows the procedure outlined by Ripatti~\emph{et
+  al.} (2002). 
+
+
+\subsection{Usage}
+
+I illustrate the use of \texttt{coxmcem}. An often used test case for
+frailty models is a data set of time to tumor occurrence for 50 litters of
+rats \cite[chapter 9]{Therneau2000a}, with one of three rats in each litter randomly selected to recieve
+a
+carcinogen exposure \citep{Mantel1977a}. This is the data that will be
+used for the case study. The first few rows are given below
+
+\begin{Schunk}
+\begin{Sinput}
+library(ipdmeta)
+data(cancer.rats)
+head(cancer.rats)
+  litter rx time event
+1      1  1  101      0
+2      1  0   49      1
+3      1  0  104      0
+4      2  1  104      0
+5      2  0  102      0
+6      2  0  104      0
+\end{Sinput}
+\end{Schunk}
+
+\subsubsection{Model}
+
+The PHMM model for time-to-tumor occurence for the
+\texttt{cancer.rats} data is
+
+\begin{equation}
+\label{eq:uni}
+\lambda(t) = \lambda_0(t) \mbox{exp}\lbrace x_{rx,i} \beta + b_{k(i)} \rbrace
+\end{equation}
+
+\noindent where $x_{rx,i}$ is the ith rat's indicator for carcinogen
+exposure and $b_k$ is the kth litter frailty with ith subject litter
+membership k(i). All K = 50 frailties share the normal distribution $b_k \sim N(0,\sigma^2)$. 
+
+\subsubsection{Implementation}
+
+PHMM (\ref{eq:uni}) with importance sampling is implemented as follows
+
+\begin{Schunk}
+\begin{Sinput}
+set.seed(123321)
+
+fit <- coxmcem(
+    Surv(time,event)~rx,
+    random=~(1|litter),
+    n.groups=50,
+    data=cancer.rats,
+    max.iter=20,
+    min.sample=500,
+    mc.step=2,
+    est.delta=1/100,
+    df=30
+)
+\end{Sinput}
+\end{Schunk}
+
+The formula for the survival object is the same as would be supplied
+to any of the models of \texttt{survival}. The random formula
+indicated the frailty structure. Here I specifiy a baseline frailty
+by litter. The number of groups is the number of clusters in the data
+set. In this case clustering is by litter and there are 50 total
+litters. Next, I indicate the name of the data frame containing the
+variables described in the model formulas.
+
+The remaining arguments determine the stopping rule for the EM
+importance sampling procedure. The argument \texttt{min.sample}
+indicates the number of draws from the joint T distribution for the
+frailties that are generated at each E step. The sample determines the
+number of frailties in the Monte Carlo estimate of the averages for
+the complete log-likelihood. It is typical to begin with a small
+number while the model estimates are far from the MLE and increase the
+sample with the algorithm iterations. In this case I specify a
+starting sample size of 1000. Because the algorithm will run more
+slowly with a larger sample size, it is best to begin with a small
+number, say 200, if suitable choices for some of the arguments,
+i.e. \texttt{df}, are still being worked out.
+
+Convergence of the algorithm is judged by the relative change of the
+model paramters. Denote the set of fixed effects and frailty variance
+parameters as $\theta$. In this example $\theta$ consists of the fixed
+effects estimate for the treatment effect \texttt{rx} and univariate
+frailty variance $\texttt{vcov} = \sigma^2$. The relative change in each parameter from the
+previous iteration is determined. If the maximum change among all
+parameters is less than \texttt{est.delta}, \emph{for three
+  consecutive iterations}, then the algorithm
+stops. With a setting for \texttt{est.delta} of $\frac{1}{100}$ this
+would mean that a less than 1\% relative change for all parameters is
+required for three iterations in a row in order to stop. For this
+reason, the minimum number of iterations for any implementation is three.
+
+If \texttt{max.iter} is reached before the convergence threshold has
+been met, the algorithm stops.
+
+The argument \texttt{mc.step} determines how the E-step frailty sample
+size is increased. When the coefficient of variation of the relative
+change of the parameters is large, this suggests that the MC error is
+too large and the sample size should be increased. Thus, when the
+three most recent relative change between consecutive EM estimates
+have a coefficient of variation greater than unity, the current sample
+size of N is increased by 
+
+\[
+N = N + \frac{1}{\mbox{mc.step}}N
+\]
+
+
+\subsubsection{Summary}
+
+First I review the algorithm properties to see if enough iterations
+and MC samples have been obtained. 
+
+\begin{Schunk}
+\begin{Sinput}
+fit[1:5]
+$max.weight
+[1] 0.01193944 0.01176729 0.01087182
+
+$mc.samples
+[1] 500 500 500
+
+$est.converge
+[1] 0.006424424 0.009711094 0.001660967
+
+$loglik
+[1] -177.5236 -177.7699 -177.8148
+
+$sd.loglik
+[1] 9.276321 8.759723 8.369623
+\end{Sinput}
+\end{Schunk}
+
+The algorithm stopped after 3 iterations, the minimum possible, so
+that the MC sample size never exceeded the initial starting value. The
+maximum weights are the maximum weights among all importance weights
+for the given iteration. These will each be a value between (0,1)
+since the sum of all importance weights are 1, their being
+normalized. For a sample size of N, each iteration draws N joint
+frailties, in this case 500 vectors of 50 frailties. Averages of the frailties are
+the importance-weighted average of the N-size sample. No single set of
+frailties should dominate this average so it needs to be checked that
+the weights are fairly evenly distributed. If the weights were all
+equal, each would be $\frac{1}{N}$. A maximum weight much greater than
+this would suggest that some adjustments were needed in the model of T
+proposal distribution settings. Here I see that no single draw
+contributed greater than approximately 1\% to the average so the
+algorithm settings seem to be fine.
+
+The standard deviation of the log-likelihood can complement the
+interpretation of the importance weights. These are the standard
+deviations of the conditional log-likelihood of the PHMM conditional
+on each
+sample frailty of the given iteration. There should be enough
+variation in the frailties to be sure that the full support is
+represented. However, large variation could produce great imbalances
+in the importance weights. So if the \texttt{max.weights} seem large, and the
+standard deviation of the log-likelihoods are large relative to the
+MLE log-likelihood values, this would suggest that the T proposal
+settings need to be modified or that the model has been poorly
+specified. For example, one way to reduce variation in the frailty
+proposal would be to lower the \texttt{df}. In general, a good
+starting place might be to set \texttt{df} to the number of clusters
+in the data set, approximately.
+
+Regarding the model estimates, I find that the final iteration
+stopped with a relative maximal change of 0.17\%, meaning that both
+the \texttt{coef} and \texttt{vcov} estimates had less than 0.2\% change
+from the previous iteration values. By specifying a \texttt{est.delta}
+of 1\%, I required that the algorithm proceed until three consecutive
+relative changes had maximum differences of 1\% or less. This was met
+after the minimum three iterations in this case.
+
+Being satisfied with the convergence properties of the MCEM I now
+consider the findings. The fixed effect estimates are the list element \texttt{coef} and the
+frailty variance parameters \texttt{vcov}.
+
+\begin{Schunk}
+\begin{Sinput}
+> fit$coef
+      rx 
+0.910061 
+
+> fit$vcov
+          [,1]
+[1,] 0.4316714
+\end{Sinput}
+\end{Schunk}
+
+Variances for each of these parameters are contained in the list
+\texttt{var}. A large-sample 95\% CI for the hazard ratio
+of tumor occurrence given carcinogen exposure can be obtained with the
+following code. I show the do-it-yourself way then a version which
+makes  use of the confidence interval function \texttt{ci}.
+
+\begin{Schunk}
+\begin{Sinput}
+> exp(fit$coef+c(-2,2)*sqrt(fit$var$coef))
+[1] 1.300951 4.744692
+
+> ci(1,fit$coef,fit$var$coef)
+      low point.est      high 
+ 1.317909  2.484474  4.683640 
+\end{Sinput}
+\end{Schunk}
+
+The interpretation is that there is a 2.5 increased risk to developing
+a tumor for rats exposed to the carcinogen which can be stated with
+95\% confidence.
+
+The variability between litters in baseline risk was
+
+\begin{Schunk}
+\begin{Sinput}
+sqrt(fit$vcov)
+         [,1]
+[1,] 0.657017
+
+> ci(1,0,fit$vcov,alpha=.3)
+      low point.est      high 
+0.5061337 1.0000000 1.9757625 
+\end{Sinput}
+\end{Schunk}
+
+\noindent suggesting that there is a roughly 30\% chance that
+otherwise equivalent rats with respect to exposure could have a
+relative hazard outside of the interval (0.51, 1.98), with 30\%
+probability, which seems a substantial level of heterogeneity.
+
+A Wald test for the significance of the fixed effects can be obtained
+by computing the Wald test-statistics using the variances of the
+\texttt{coef}.
+
+\begin{Schunk}
+\begin{Sinput}
+> fit$coef/sqrt(get.diag(fit$var$coef))
+      rx 
+2.813322 
+
+> p.value <- pnorm(abs(fit$coef/sqrt(get.diag(fit$var$coef))),lower=FALSE)
+> p.value
+         rx 
+0.002451630 
+\end{Sinput}
+\end{Schunk}
+
+Testing of the random effect is more challenging because of the
+asymptotic properties of common tests when the variance parameter is
+near the boundary, that is, the null hypothesis that the variance is
+zero. A Wald test can be a useful exploratory tool but a likelihood
+ratio test is generally preferred \cite{Self1987a}.
+
+\begin{Schunk}
+\begin{Sinput}
+> fit$vcov/sqrt(fit$var$vcov)
+         [,1]
+[1,] 1.868417
+\end{Sinput}
+\end{Schunk}
+
+This gives support for the inclusion of the baseline litter random
+effect. 
+
+\subsubsection{Recognizing a Poorly Specified Model}
+
+I now consider how to identify a poorly fit model when the random
+effect and fixed effects structures have been misspecified. I do this
+be introducing an unrelated variable into the model. The `noise' term
+is included as a fixed and random effect.
+
+\begin{equation}
+\label{eq:uni}
+\lambda(t) = \lambda_0(t) \mbox{exp}\lbrace x_{rx,i} \beta_1 +
+x_{noise,i} \beta_2 + b_{k(i),1} +  b_{k(i),2} x_{noise,i} \rbrace
+\end{equation}
+
+\noindent with 
+
+\[
+\begin{pmatrix} b_{k,1} \\ b_{k,2} \end{pmatrix} \sim
+MVN(\mathbf{0},\begin{pmatrix} \theta_1 & \theta_3 \\
+\theta_3 & \theta_2 \end{pmatrix})
+\]
+
+\noindent And the implemenation is given by 
+
+\begin{Schunk}
+\begin{Sinput}
+set.seed(456654)
+
+cancer.rats$noise <- runif(150)
+
+fit <- coxmcem(
+    Surv(time,event)~rx+noise,
+    random=~(1+noise|litter),
+    n.groups=50,
+    data=cancer.rats,
+    max.iter=10,
+    min.sample=300,
+    mc.step=2,
+    est.delta=1/100,
+    df=30
+)
+\end{Sinput}
+\end{Schunk}
+
+Since I am initially unsure about the fit of this model, I do a
+trial run with a smaller initial sample size and fewer
+iterations. Monitoring the relative change in estimates I note some
+cases of high change. One way in which this could occur is when a
+parameter of the model is close to zero, so that small absolute
+changes in estimates result in large relative changes.
+
+I also note some iterations with high \texttt{max.weight} and
+\texttt{sd.loglik}. Looking at the fixed effect estimates, I conclude
+that the \texttt{noise} term is not contributing any information to the
+tumor-occurrence outcome and that the large relative changes in the
+parameters (large \texttt{est.delta}) was due to the noise coefficient
+being near to zero.
+
+\begin{Schunk}
+\begin{Sinput}
+> fit$coef/sqrt(get.diag(fit$var$coef))
+      rx    noise 
+3.019627 0.642682 
+\end{Sinput}
+\end{Schunk}

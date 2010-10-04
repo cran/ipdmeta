@@ -1,0 +1,71 @@
+This is BibTeX, Version 0.99c (Web2C 7.5.6)
+The top-level auxiliary file: ipdmeta_vignette.aux
+The style file: wileyj.bst
+Database file #1: /Users/skoval/meta/bib/survival.bib
+Database file #2: /Users/skoval/meta/bib/survival.meta.bib
+Database file #3: /Users/skoval/meta/bib/statistics.bib
+Database file #4: /Users/skoval/meta/bib/meta.bib
+Repeated entry---line 1592 of file /Users/skoval/meta/bib/meta.bib
+ : @article{Arends2008a
+ :                     ,
+I'm skipping whatever remains of this entry
+"}" immediately follows an entry type---line 1594 of file /Users/skoval/meta/bib/meta.bib
+ :  Address = {Department of Epidemiology \& Biostatistics, Erasmus MC, University Medical Center Rotterdam, P.O. Box 2040, 3000 CA Rotterdam, The Netherlands. l.arends@erasmusmc.nl
+ :                                                                                                                                                                                   },
+I'm skipping whatever remains of this entry
+Database file #5: /Users/skoval/meta/bib/ecological_bias.bib
+Database file #6: /Users/skoval/meta/bib/likelihood.bib
+Database file #7: /Users/skoval/meta/bib/bayes.meta.bib
+Database file #8: /Users/skoval/meta/bib/bayes.bib
+Database file #9: /Users/skoval/meta/bib/power_loss.bib
+Database file #10: /Users/skoval/meta/bib/cox_randomeffects.bib
+Repeated entry---line 166 of file /Users/skoval/meta/bib/cox_randomeffects.bib
+ : @article{Ripatti2000a
+ :                      ,
+I'm skipping whatever remains of this entry
+Database file #11: /Users/skoval/meta/bib/importance_sampling.bib
+Database file #12: /Users/skoval/bibliography/public_health.bib
+Database file #13: /Users/skoval/bibliography/cer.bib
+Database file #14: /Users/skoval/meta/bib/bhits.bib
+You've used 13 entries,
+            2526 wiz_defined-function locations,
+            668 strings with 7155 characters,
+and the built_in function-call counts, 12668 in all, are:
+= -- 1549
+> -- 120
+< -- 0
++ -- 158
+- -- 30
+* -- 715
+:= -- 1080
+add.period$ -- 26
+call.type$ -- 13
+change.case$ -- 12
+chr.to.int$ -- 0
+cite$ -- 13
+duplicate$ -- 1522
+empty$ -- 948
+format.name$ -- 40
+if$ -- 2713
+int.to.chr$ -- 0
+int.to.str$ -- 13
+missing$ -- 141
+newline$ -- 47
+num.names$ -- 13
+pop$ -- 481
+preamble$ -- 1
+purify$ -- 0
+quote$ -- 0
+skip$ -- 611
+stack$ -- 0
+substring$ -- 1110
+swap$ -- 1096
+text.length$ -- 0
+text.prefix$ -- 0
+top$ -- 0
+type$ -- 0
+warning$ -- 0
+while$ -- 79
+width$ -- 15
+write$ -- 122
+(There were 3 error messages)

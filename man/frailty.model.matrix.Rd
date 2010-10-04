@@ -29,8 +29,11 @@ Matrix of cluster effect design matrices.
 
 \examples{
 
-data(rats)
+data(cancer.rats)
 
-frailty.model.matrix(~(1|litter),rats)
+#RANDOM EFFECTS "DESIGN MATRIX"
+#BASELINE FRAILTY, 50 LITTERS 3 RATS IN EACH LITTER
+
+frailty.model.matrix(~(1|litter),cancer.rats)
 
 }

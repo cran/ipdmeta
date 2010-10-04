@@ -86,11 +86,11 @@ The sample size changes with the result of the CV check of the relative change i
 
 set.seed(3232)
 
-data(rats)
+data(cancer.rats)
 
 fit.rats <- 
 
-coxmcem(Surv(time,status)~rx,~(1|litter),n.groups=50,data=rats,
+coxmcem(Surv(time,event)~rx,~(1|litter),n.groups=50,data=cancer.rats,
 		max.iter=10,
 		min.sample=300,
 		mc.step=2,

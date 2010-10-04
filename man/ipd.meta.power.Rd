@@ -4,7 +4,9 @@
 \title{IPD meta-analysis covariate-treatment power estimate}
 
 \description{
-Estimates the individual-patient meta-analysis power of a Wald test of interaction in a mixed effects model based on aggregate data summaries.
+Estimates the individual-patient meta-analysis power of a Wald test of
+interaction in a mixed effects model for a continuous or binary
+outcome with only study-level summaries (no patient-level data).
 }
 
 \usage{
@@ -48,7 +50,14 @@ All vector entries are grouped by study.
 
 \details{
 
-The estimator applies to an IPD mixed effects analysis with random intercept and treatment effect by study. Can be used for binary or continuous patient-level response. For a continuous response the effect size is the mean difference and the summary responses are the treatment arm means. For a binary outcome, the effect size is the log-odds ratio and the response for each treatment arm is the log odds of the mean proportion. When the effect size is the log-odds the residual variance \code{sigma} is always one as is the case for a GLM model with logit link and no overdispersion.
+The estimator applies to an IPD generalized linear mixed model with a
+logit or idenity link, corresponding to a binary or continuous
+outcome, respectively. The supposed IPD GLMM has an intervention,
+covariate and covariate-treatment interaction term. Random effects by
+study for baseline and treatment effect are assumed. 
+
+The study-level data for a continuous response has effect sizes that
+are the mean difference between groups;  summary responses are the treatment arm means. For a binary outcome, the effect size is the log-odds ratio and the response for each treatment arm is the log odds of the mean proportion. When the effect size is the log-odds the residual variance \code{sigma} is always one as is the case for a GLM model with logit link and no overdispersion.
 
 When logOR is \code{FALSE} it is assumed that the patient-level response is a continuous variable. 
 
@@ -59,7 +68,7 @@ When logOR is \code{FALSE} it is assumed that the patient-level response is a co
 A list with the following named components:
 
 \tabular{ll}{
- \code{esimated.power} \tab IPD mixed effects meta-analysis interactive effect power \cr
+ \code{esimated.power} \tab The estmated IPD meta-analysis interactive effect power \cr
  \code{power.lower} \tab Lower bound for \code{level} CI \cr
  \code{power.upper} \tab Upper bound for \code{level} CI \cr
  \code{estimated.se} \tab Estimated standard error of IPD meta-analysis interaction effect \cr

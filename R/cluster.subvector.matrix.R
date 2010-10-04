@@ -1,4 +1,7 @@
-cluster.subvector.matrix <- function(b,n.groups){
+cluster.subvector.matrix <- function(
+                         b,
+                         n.groups)
+{
 		     #FUNCTION TO STACK EFFECTS IF MULTIPLE
     n = length(b)
     i = n/n.groups
@@ -18,7 +21,13 @@ cluster.subvector.matrix <- function(b,n.groups){
     }
 }
 
-combined.subvector.matrix <- function(b1,b2,n1,n2,as.matrix=TRUE){
+combined.subvector.matrix <- function(
+                          b1,
+                          b2,
+                          n1,
+                          n2,
+                          as.matrix=TRUE)
+{
 
 	b1.matrix <- cluster.subvector.matrix(b1,n1)
 	b2.matrix <- cluster.subvector.matrix(b2,n2)

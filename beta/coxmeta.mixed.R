@@ -11,7 +11,6 @@ function(
    meta.groups,
    sigma2,
    study.group.interaction,
-   p,
    max.iter,
    min.sample,
    est.delta,
@@ -24,6 +23,8 @@ function(
 ){
 
 ###INITIALIZATION
+       
+       beta.index <- beta.indices(ipd.formula,meta.formula)
 
 	coxmeta.objects <- 
 	   coxmeta.initialize(
@@ -36,9 +37,8 @@ function(
    	      meta.groups,
    	      sigma2,
    	      study.group.interaction,
-   	      p
+              beta.index
 	   )
-
 
    D = coxmeta.objects$params$D
 
@@ -48,19 +48,18 @@ fixed.coxmeta <- coxmeta.fixed(
    	      ipd.data,
    	      meta.data,
    	      sigma2,
-	      init.beta0=coxmeta.objects$params$beta0,
-	      init.beta=coxmeta.objects$params$beta,
+	      beta.ipd=coxmeta.objects$params$beta.ipd,
+	      beta.ad=coxmeta.objects$params$beta.ad,
    	      study.group.interaction 	
 	  )
 
-   q <- length(fixed.coxmeta$coef)
    D = coxmeta.objects$params$D
-   beta0 = fixed.coxmeta$coef[1:(q-p)]
-   beta = fixed.coxmeta$coef[(q-p+1):q]
+   beta.ipd = fixed.coxmeta$coef[beta.index$ipd]
+   beta.ad = fixed.coxmeta$coef[beta.index$ad]
    loglik.null = fixed.coxmeta$loglik
    p.D = dim(D)[1]
 
-   if(missing(converge.index)) converge.index = 1:(q+p.D)
+   if(missing(converge.index)) converge.index = 1:(max(beta.index$ad)+p.D)
 
 ###PROPOSAL SAMPLING
 
@@ -74,7 +73,7 @@ weights <- function(B.cox,B.surv){
        
         coxmeta.importance.weights(
 	coxmeta.objects$model[[1]],coxmeta.objects$model[[2]],
-	B.cox,B.surv,D,beta.cox=beta,beta.surv=c(beta0,beta),
+	B.cox,B.surv,D,beta.cox=beta.ipd,beta.surv=beta.ad,
    	coxmeta.objects$params$cox.loc,coxmeta.objects$params$cox.scale,
 	coxmeta.objects$params$surv.loc,coxmeta.objects$params$surv.scale,df)
 
@@ -119,7 +118,7 @@ Estep <-
 
 #MSTEP
 
-Mstep <- coxmeta.Mstep(beta0,beta,
+Mstep <- coxmeta.Mstep(beta.index,beta.ipd,beta.ad,
 		coxmeta.objects$model[[1]],
 		coxmeta.objects$model[[2]],
 		Estep)
@@ -128,8 +127,9 @@ Mstep <- coxmeta.Mstep(beta0,beta,
 ###CONVERGENCE CRITERIA
 ###RELATIVE CHANGE
 
+beta = beta.construct(beta.ipd,beta.ad,beta.index$shared)
 zeta.now = c(Mstep$fit$coef,diag(Mstep$D))
-zeta.last = c(beta0,beta,get.diag(D))
+zeta.last = c(beta,get.diag(D))
 
 est.converge <-  relative.criteria(zeta.now[converge.index],zeta.last[converge.index])
 
@@ -181,8 +181,8 @@ else{
 
 ###UPDATE
 
-beta0 = Mstep$fit$coef[1:(q-p)]
-beta = Mstep$fit$coef[(q-p+1):q]
+beta.ipd = Mstep$fit$coef[beta.index$ipd]
+beta.ad = Mstep$fit$coef[beta.index$ad]
 D = Mstep$D
 
 }
@@ -190,7 +190,7 @@ D = Mstep$D
 #FINAL ESTIMATES
 
    coxmcem.object$iterations <- n.iter
-   coxmcem.object$coef <- c(beta0,beta)
+   coxmcem.object$coef <- beta.construct(beta.ipd,beta.ad,beta.index$shared)
    coxmcem.object$vcov <- D
    coxmcem.object$cluster <- rbind(Estep$cox.mean,Estep$surv.mean)
 
@@ -199,12 +199,12 @@ D = Mstep$D
 
    coxmcem.object$var$coef <- 
   
- 	 coxmeta.info.coef(beta0,beta,
+ 	  coxmeta.info.coef(beta.index,beta.ipd,beta.ad,
 		cox=coxmeta.objects$model[[1]],
 		surv=coxmeta.objects$model[[2]],
 		B.cox,B.surv,w)
    
-   coxmcem.object$var$coef <- solve(matrix(coxmcem.object$var$coef,q,q))
+   coxmcem.object$var$coef <- solve(coxmcem.object$var$coef)
 
    coxmcem.object$var$vcov <- 
    	 coxmeta.info.vcov(B.cox,B.surv,ipd.groups,meta.groups,D,w)
@@ -273,10 +273,10 @@ return(list(
 
 
 
-coxmeta.Mstep <-  function(beta0,beta,cox,surv,Estep){
+coxmeta.Mstep <-  function(beta.index,beta.ipd,beta.ad,cox,surv,Estep){
 
     #BETA PARAMETERS
-    fit <- coxmeta.offset(beta0,beta,cox,surv,Estep$cox.offset,Estep$surv.offset)
+    fit <- coxmeta.offset(beta.index,beta.ipd,beta.ad,cox,surv,Estep$cox.offset,Estep$surv.offset)
 
     #VARIANCE PARAMETERS
     D <- cluster.variance(cox,surv,Estep$cox.second,Estep$surv.second)
@@ -302,15 +302,17 @@ cluster.variance <- function(cox,surv,cox.second,surv.second){
 
 #MAXIMIZATION OF EFFECTS
 
-coxmeta.offset <- 
+coxmeta.offset <-  function(
+  beta.index,
+  beta.ipd,
+  beta.ad,
+  cox,
+  surv,
+  cox.offset,
+  surv.offset,
+  error=1/1000)
+{
 
-function(beta0,beta,cox,surv,cox.offset,surv.offset,error=1/1000){
-
-    p = length(beta)
-    q = length(beta0)
-  
-    surv.formula <- as.formula(paste(c(surv$f,
-    		 as.character(cox$f)[3]),collapse="+"))
 
     #KNOWN COVARIANCE-VARIANCE FOR SURVIVAL OUTCOMES
     Sigma <- surv$Sigma
@@ -328,15 +330,14 @@ function(beta0,beta,cox,surv,cox.offset,surv.offset,error=1/1000){
     if(converge<error) last = TRUE
 
     #PATIENT LEVEL SCORE/INFO/LIKELIHOOD
-    NR.cox <- coxph.with.offset(cox$f,cox$data,beta=beta,cox.offset)        
+    NR.cox <- coxph.with.offset(cox$f,cox$data,beta=beta.ipd,cox.offset)        
 
     #STUDY LEVEL SCORE/INFO/LIKELIHOOD
-    NR.surv <- surv.with.offset(
-    	    surv.formula,surv$data,beta=c(beta0,beta),Sigma,surv.offset)
+    NR.surv <- surv.with.offset(surv$f,surv$data,beta=beta.ad,Sigma,surv.offset)
 
     #COMBINED
     NR <- combined.score.info(
-       	  p=p,q=q,
+          beta.index,
 	  U.cox=NR.cox$score,
 	  I.cox=NR.cox$info,
 	  loglik.cox=NR.cox$loglik,
@@ -345,22 +346,22 @@ function(beta0,beta,cox,surv,cox.offset,surv.offset,error=1/1000){
 	  loglik.surv=NR.surv$loglik)
 
     #UPDATE
-    info <- matrix(NR$info,p+q,p+q)
-    update <- as.vector(solve(info)%*%NR$score)
+    update <- as.vector(solve(NR$info)%*%NR$score)
  
+    beta.ipd <- beta.ipd+update[beta.index$ipd]
+    beta.ad <- beta.ad+update[beta.index$ad]
+    beta <- beta.construct(beta.ipd,beta.ad,beta.index$shared)
 
-    beta0 <- beta0+update[1:q]
-    beta <- beta+update[(q+1):(p+q)]
     converge = abs(NR$loglik-loglik)
     loglik = NR$loglik
   
-    monitor$coef <- cbind(monitor$coef,c(beta0,beta))
+    monitor$coef <- cbind(monitor$coef,beta)
     monitor$loglik <- c(monitor$loglik,loglik)
     }
 
 return(list(
-	coef=c(beta0,beta),
-	var=solve(matrix(info,p+q,p+q)),
+	coef=beta,
+	var=solve(NR$info),
 	loglik=loglik,
 	monitor=monitor))
 }
@@ -379,14 +380,13 @@ function(
    meta.groups,
    sigma2,
    study.group.interaction,
-   p
+   beta.index
 
 ){
 
 	model.objects <- 
 
 	   coxmeta.data.objects(
-
 	   ipd.formula,
   	   meta.formula,
    	   random.formula,
@@ -403,7 +403,7 @@ function(
 	      random.formula,
 	      model.objects[[1]],
 	      model.objects[[2]],
-	      p)
+	      beta.index)
 
   return(list(model=model.objects,params=parameters))
 }
@@ -413,7 +413,7 @@ parameter.initialize <- function(
    random.formula,
    cox.data.object,
    surv.data.object,
-   p
+   beta.index
 
 ){
 
@@ -429,43 +429,41 @@ parameter.initialize <- function(
        		     c(cox.data.object$f,as.character(random.formula)[2]),
 		     collapse="+")
 
-       coxme.formula <- formula(coxme.formula)
-       phmm.formula <- list(fixed=formula(phmm.fixed),
+        coxme.formula <- formula(coxme.formula)
+        phmm.formula <- list(fixed=formula(phmm.fixed),
        		    random=formula(phmm.random))
-    
+ 
  
    if(cox.data.object$n.groups>1){
 
        cox.params <- coxmcem.mixed.initialize(
        		  coxme.formula,
 		  phmm.formula,
-		  cox.data.object$data,
-		  p
+		  cox.data.object$data
 		  )
 
-       q = ncol(surv.data.object$X) - p
-       meta.coef.only = runif(q)
        
        D = as.matrix(cox.params$D)
-       beta = cox.params$beta
-       beta0 = meta.coef.only
+       beta.ipd = cox.params$beta
 
        cox.loc <- cox.params$mean
        cox.scale <- cox.params$Sigma
 
          }
      else{
-       q = ncol(surv.data.object$X) - p
-       meta.coef.only = runif(q)
        D = make.diagonal.matrix(runif(ncol(cox.data.object$Z)))
-       beta = rnorm(p)
-       beta0 = meta.coef.only
+       beta.ipd = rnorm(length(beta.index$ipd))
        }
   
+       beta.ad = runif(length(beta.index$ad))
+       beta.ad[beta.index$shared.index] <- beta.ipd[beta.index$ad[beta.index$shared.index]]
+
+       beta = beta.construct(beta.ipd,beta.ad,beta.index$shared.index)
+
        DA <- diag(rep(diag(D),each=surv.data.object$n.groups))
 
        scale <- solve(solve(DA)+t(surv.data.object$Z)%*%solve(surv.data.object$Sigma)%*%surv.data.object$Z)
-       R <- log(-log(surv.data.object$S))-surv.data.object$X%*%c(beta0,beta)
+       R <- log(-log(surv.data.object$S))-surv.data.object$X%*%beta.ad
        loc <- scale%*%t(surv.data.object$Z)%*%solve(surv.data.object$Sigma)%*%R
        loc <- as.numeric(loc)
 
@@ -481,15 +479,11 @@ parameter.initialize <- function(
          cox.loc <- apply(cox.loc,2,mean)
          n.scale <- length(cox.loc)
          cox.scale <- make.diagonal.matrix(rep(scale[1,1],n.scale))
-	 print(cox.loc)
-	 print(cox.scale)
        }
 
 return(list(
-	p = p,
-	q = q,
-	beta = beta,
-	beta0 = beta0,
+	beta.ipd = beta.ipd,
+	beta.ad = beta.ad,
 	D = D,
 	cox.loc = cox.loc,
 	cox.scale = cox.scale,
@@ -517,7 +511,6 @@ coxmeta.data.objects <- function(
 #MAKING DATA OBJECTS
 
 	cox.data.object <- list(
-
 	   f=ipd.formula,
 	   Z=frailty.model.matrix(random.formula,ipd.data),
 	   data=ipd.data,
@@ -526,9 +519,6 @@ coxmeta.data.objects <- function(
 
 #MAKE SURV DATA OBJECT
 
-	surv.formula <- as.formula(paste(c(meta.formula,
-    		 as.character(ipd.formula)[3]),collapse="+"))
-
 	surv <- meta.data[,all.vars(meta.formula)[1]]
 
         surv.data.object <- list(
@@ -536,7 +526,7 @@ coxmeta.data.objects <- function(
 	   f=meta.formula,
 	   data=meta.data,
 	   S=surv,
-	   X=model.matrix(terms(surv.formula),meta.data),
+	   X=model.matrix(terms(meta.formula),meta.data),
 	   Z=frailty.model.matrix(random.formula,meta.data),
 	   Sigma=surv.covariance.variance(surv,sigma2,study.group.interaction),
 	   n.groups=meta.groups
@@ -547,7 +537,14 @@ return(list(cox.data.object,surv.data.object))
 
 
 ####EFFECT PARAMETERS
-coxmeta.info.coef <- function(beta0,beta,cox,surv,B.cox,B.surv,weights){
+coxmeta.info.coef <-  function(
+   beta.index,
+   beta.ipd,
+   beta.ad,
+   cox,surv,
+   B.cox,
+   B.surv,
+   weights){
 
 ###EFFECTS
 ###INFO AT MEAN OFFSET
@@ -556,20 +553,28 @@ coxmeta.info.coef <- function(beta0,beta,cox,surv,B.cox,B.surv,weights){
    surv.offset <- surv$Z%*%t(B.surv)%*%weights
 
 info.beta <- coxmeta.score.info.coef(
-	  beta0,
-	  beta,
+          beta.index,
+	  beta.ipd,
+	  beta.ad,
 	  cox,surv,
 	  cox.offset,surv.offset
-	  )$info
+	  )
+
+info.beta <- as.vector(info.beta$info)
   
    b.cox.offset <- lapply(1:nrow(B.cox),function(i){cox$Z%*%B.cox[i,]})
    b.surv.offset <- lapply(1:nrow(B.surv),function(i){surv$Z%*%B.surv[i,]})
    
 
-scores.beta <- mapply(coxmeta.score.info.coef,
+scores.beta <- mapply(
+            coxmeta.score.info.coef,
 	    cox.offset=b.cox.offset,
 	    surv.offset=b.surv.offset,
-	    MoreArgs=list(beta0=beta0,beta=beta,cox=cox,surv=surv,score.only=TRUE))
+	    MoreArgs=list(
+            beta.index=beta.index,
+            beta.ipd=beta.ipd,
+            beta.ad=beta.ad,
+            cox=cox,surv=surv,score.only=TRUE))
 
 U2.beta <- if(is.matrix(scores.beta)) apply(scores.beta,2,function(x){outer(x,x)}) else scores.beta^2
 
@@ -579,6 +584,7 @@ U2.beta <- U2.beta%*%weights
 ###LOUIS INFO FOR EFFECTS
 
 info.beta <- info.beta-U2.beta
+info.beta <- matrix(info.beta,sqrt(length(info.beta)),sqrt(length(info.beta)))
 
 return(info.beta)
 }
@@ -587,8 +593,9 @@ return(info.beta)
 #MAXIMIZATION OF EFFECTS
 
 coxmeta.score.info.coef <- function(
- beta0,
- beta,
+ beta.index,
+ beta.ipd,
+ beta.ad,
  cox,
  surv,
  cox.offset,
@@ -596,25 +603,19 @@ coxmeta.score.info.coef <- function(
  score.only=FALSE
 ){
 
-    p = length(beta)
-    q = length(beta0)
-  
-    surv.formula <- as.formula(paste(c(surv$f,
-    		 as.character(cox$f)[3]),collapse="+"))
 
     #KNOWN COVARIANCE-VARIANCE FOR SURVIVAL OUTCOMES
     Sigma <- surv$Sigma
 
     #PATIENT LEVEL SCORE/INFO/LIKELIHOOD
-    NR.cox <- coxph.with.offset(cox$f,cox$data,beta=beta,cox.offset)        
+    NR.cox <- coxph.with.offset(cox$f,cox$data,beta=beta.ipd,cox.offset)        
 
     #STUDY LEVEL SCORE/INFO/LIKELIHOOD
-    NR.surv <- surv.with.offset(
-    	    surv.formula,surv$data,beta=c(beta0,beta),Sigma,surv.offset)
+    NR.surv <- surv.with.offset(surv$f,surv$data,beta=beta.ad,Sigma,surv.offset)
 
     #COMBINED
     NR <- combined.score.info(
-       	  p=p,q=q,
+          beta.index=beta.index,
 	  U.cox=NR.cox$score,
 	  I.cox=NR.cox$info,
 	  loglik.cox=NR.cox$loglik,
@@ -678,7 +679,7 @@ mixed.vcov.score <- function(B.cox,B.surv,D,cox.groups,surv.groups){
 coxmcem.mixed.initialize <- function(
 		   coxme.formula,
 		   phmm.formula,
-		   data,p.beta,
+		   data,
 		   init.coef,
 		   init.vcov){
 
@@ -698,7 +699,6 @@ coxmcem.mixed.initialize <- function(
           fit <- coxme(coxme.formula,data)
 	  coef <- fit$coef$fixed
 	  vcov <- fit$coef$random[[1]]
-
 	  mean <- as.vector(fit$frail[[1]])
          }
 

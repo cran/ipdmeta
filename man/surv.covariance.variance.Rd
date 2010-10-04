@@ -1,10 +1,13 @@
 \name{surv.covariance.variance}
 \alias{surv.covariance.variance}
 
-\title{Construct covariance-variance matrix for set of survival estimates}
+\title{Construct covariance-variance matrix for study-level model of
+  MLMA}
 
 \description{
-Constructs the covariance-variance matrix for the transformed survival estimates of a meta-analysis (multiple studies, treatment groups and survival estimates). The GLM framework has the link function g(x) = log(-log(x)).
+Constructs the "known" covariance-variance matrix for the transformed
+estimates of a survival meta-analysis. Responses are a set of survival
+proportions (points on KM plot) grouped in some way (study; treatment-within-study). The GLM framework has the link function g(x) = log(-log(x)).
 }
 
 \usage{

@@ -10,30 +10,32 @@ Combined estimation of parameters of hazard model for a survival meta-analysis w
 
 \usage{
 
+
 coxmeta.fixed(
 
-   ipd.formula,
-   meta.formula,
-   ipd.data,
-   meta.data,
-   sigma2,
-   study.group.interaction,
-   init.beta0,
-   init.beta,
-   error=1/1000
+    ipd.formula,
+    meta.formula,
+    ipd.data,
+    meta.data,
+    sigma2,
+    study.group.interaction,
+    beta.ad,
+    beta.ipd,
+    error=1/1000
 )
 }
 
 \arguments{
 
-  \item{ipd.formula}{Formula for patient-level Cox model as would be supplied to \code{coxph}}
-  \item{meta.formula}{Formula for study-level data with only the covariates that are not included in patient-level model, i.e. \code{surv~log(time)}}
+  \item{ipd.formula}{Formula for patient-level Cox model as would be
+      supplied to \code{coxph}, \code{Surv(time,event)~trt*x}}
+  \item{meta.formula}{Formula for study-level data \code{surv~log(time)+trt*x}}
   \item{ipd.data}{Patient-level data frame}
   \item{meta.data}{Study-level data frame containing survival estimates by study and treatment group}
   \item{sigma2}{Estimates variances for aggregate survival estimates of \code{meta.data}}
   \item{study.group.interaction}{Factor that is the study and treatment group interaction for \code{meta.data}}
-  \item{init.beta0}{Starting values for \code{beta0} additional regression parameters for the aggregate data according to the GLM survival model.}
-  \item{init.beta}{Starting values for \code{beta} the shared parameters of the patient-level and study-level.}
+  \item{beta.ipd}{Vector of starting values for the individual-level model.}
+  \item{beta.ad}{Vector of starting values for the study-level model.}
   \item{error}{Newton-Raphson stopping rule criterion based on change in log-likelihood}
 }
 
@@ -44,10 +46,15 @@ The estimation is based on likelihood methods for the combined likelihood contri
 
 The aggregate model is a multivariate GLM on the log-negative-log transform of the survival estimates. The mean of the transformed survival is linear in the covariate model of \code{meta.formula}. The transformed estimates are assumed to have an MVN distribution where the covariance-variance matrix is regarded as known and is determined by the variances \code{sigma2} and the correlation between surival estimates within the same cluster.
 
-The formula argument for \code{ipd.formula} specifies the set of shared covariates, i.e. all model components save intercept term and factors for the baseline hazard. These covariates share the same variable name in \code{ipd.data} and \code{meta.data}.
-
-The formula argument \code{meta.formula} will have components which model the way that time is related to the survival estimate. This function should be the first term following \code{surv~}. It is assumed that all the components of \code{ipd.formula} are also covariates for the aggregate data so that these dod not nee to be specified in the \code{meta.formula}.
-
+Shared parameters between the individual-level and study-level models
+are determined by common term.labels for \code{ipd.formula} and
+\code{meta.formula}. So, for example, if \code{ipd.formula} was
+\code{Surv(time,event)~trt*x} and \code{meta.formula} was
+\code{surv~log(time)+trt*x} then the shared terms are
+\code{trt},\code{x} and \code{trt:x} and these would be combined. If
+instead \code{meta.formula} was \code{surv~log(time)+trt*x.bar}, then
+only \code{trt} would be common, and only study level data would be
+used to estimate \code{x.bar} and \code{trt:x.bar} factors.
 }
 
 \value{
@@ -71,17 +78,39 @@ data(meta.data)
 #SURV BASELINE HAZARD COMPONENT OF MODEL ~LOG(TIME)
 
 fit <- coxmeta.fixed(
-    Surv(time,event)~trt,surv~log(time),
+    Surv(time,event)~trt,surv~log(time)+trt,
     ipd.data,
     meta.data,
     meta.data$sigma2,
     meta.data$sub.group,
-    init.beta0=c(1,0),
-    init.beta=-.5
+    beta.ipd = runif(1),
+    beta.ad = c(1,0,runif(1)),
     )
 
 fit$coef		#MODEL FIT
 
 sqrt(diag(fit$var))	#STANDARD ERROR
+
+###SEPARATION OF STUDY-LEVEL AND PATIENT-LEVEL COVARIATE
+
+ipd.data$x.bar <-
+rep(tapply(ipd.data$x,ipd.data$group,mean),table(ipd.data$group))
+ipd.data$x.c <- ipd.data$x-ipd.data$x.bar
+meta.data$x.bar <- meta.data$x
+
+fit <- coxmeta.fixed(
+    Surv(time,event)~trt+x.c+x.bar,surv~log(time)+trt+x.bar,
+    ipd.data,
+    meta.data,
+    meta.data$sigma2,
+    meta.data$sub.group,
+    beta.ipd = runif(3),
+    beta.ad = c(1,0,runif(2)),
+    )
+
+fit$coef		#MODEL FIT
+
+sqrt(diag(fit$var))	#STANDARD ERROR
+
 
 }
