@@ -16,6 +16,18 @@ function(
 	init.vcov
 ){
 
+   ### MISSING REMOVAL
+   vars <- c(all.vars(fixed),all.vars(random))
+   missing.cases <- sapply(vars,function(x){any(is.na(data[,x]))})
+
+   if(any(missing.cases)){
+     i <- which(missing.cases)
+     missing.index <- sapply(vars[i],function(x){which(is.na(data[,x]))})
+     missing.index <- unique(as.vector(unlist(missing.index)))
+     data <- data[-missing.index,]
+     print(paste(length(missing.index),"Missing cases excluded"))
+   }
+
    p.beta <- length(all.vars(fixed))-2
    Z <- frailty.model.matrix(random,data)
 

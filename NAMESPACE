@@ -10,6 +10,6 @@ export(
 "frailty.model.matrix",
 "make.clustered.ipd",
 "surv.covariance.variance",
-"ipd.meta.power",
+"ipd.sep",
 "Qt"
 )

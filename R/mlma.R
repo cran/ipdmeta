@@ -20,6 +20,21 @@ mlma <- function(
    fixed=FALSE
 ){
 
+   ### MISSING REMOVAL
+
+   vars <- all.vars(ipd.formula)
+   if(!fixed) vars <- c(vars,all.vars(random.formula))
+   
+   missing.cases <- sapply(vars,function(x){any(is.na(ipd.data[,x]))})
+
+   if(any(missing.cases)){
+     i <- which(missing.cases)
+     missing.index <- sapply(vars[i],function(x){which(is.na(ipd.data[,x]))})
+     missing.index <- unique(as.vector(unlist(missing.index)))
+     ipd.data <- ipd.data[-missing.index,]
+     print(paste(length(missing.index),"Missing cases excluded"))
+   }
+   
 if(fixed){
 
 fit <- coxmeta.fixed(

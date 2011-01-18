@@ -1,29 +1,92 @@
-ipd.meta.power <- function(
-               y0,
-               y1,
-               var0,
-               var1,
-               x0,
-               x1,
-               s20,
-               s21,
-               n0,
-               n1,
-               interaction,
-               alpha=.05,
-               logOR=TRUE,
-               level=95)
+ipd.sep <- function(
+               effect,
+               event0=NULL,
+               event1=NULL,
+               mean0=NULL,
+               mean1=NULL,
+               var0=NULL,
+               var1=NULL,
+               x0=NULL,
+               x1=NULL,
+               s20=NULL,
+               s21=NULL,
+               n0=NULL,
+               n1=NULL,
+               data,
+               alpha=.05)
 {
 
 #REPEATED CALLS TO IPD.META.POWER.BASE.FUNCTION
 
     types <- c("point","lower","upper")
 
+    if(!missing(data)){ #CHECK IF OBJECTS ARE IN GIVEN DATA FRAME
+      
+      CALL <- match.call()
+      arg.names <- lapply(CALL,deparse)
+      
+      if(!is.null(arg.names$event0)&&arg.names$event0%in%names(data)){
+        event0 <- data[,arg.names$event0]
+      }
+
+      if(!is.null(arg.names$event1)&&arg.names$event1%in%names(data)){
+        event1 <- data[,arg.names$event1]
+      }
+
+      if(!is.null(arg.names$mean0)&&arg.names$mean0%in%names(data)){
+        mean0 <- data[,arg.names$mean0]
+      }
+
+      if(!is.null(arg.names$mean1)&&arg.names$mean1%in%names(data)){
+        mean1 <- data[,arg.names$mean1]
+      }
+      
+      if(!is.null(arg.names$var0)&&arg.names$var0%in%names(data)){
+        var0 <- data[,arg.names$var0]
+      }
+
+      if(!is.null(arg.names$var1)&&arg.names$var1%in%names(data)){
+        var1 <- data[,arg.names$var1]
+      }
+
+      if(!is.null(arg.names$n0)&&arg.names$n0%in%names(data)){
+        n0 <- data[,arg.names$n0]
+      }
+
+      if(!is.null(arg.names$n1)&&arg.names$n1%in%names(data)){
+        n1 <- data[,arg.names$n1]
+      }
+      
+      if(!is.null(arg.names$x0)&&arg.names$x0%in%names(data)){
+        x0 <- data[,arg.names$x0]
+      }
+
+      if(!is.null(arg.names$x1)&&arg.names$x1%in%names(data)){
+        x1 <- data[,arg.names$x1]
+      }
+
+      if(!is.null(arg.names$s20)&&arg.names$s20%in%names(data)){
+        s20 <- data[,arg.names$s20]
+      }
+
+      if(!is.null(arg.names$s21)&&arg.names$s21%in%names(data)){
+        s21 <- data[,arg.names$s21]
+      }
+      
+    }
+
+    if(is.null(s20)){
+      s20 <- x0*(1-x0)
+      s21 <- x1*(1-x1)
+    }
+    
     estimates <- lapply(types,function(x){
-      ipd.meta.power.base.function(type=x,
-	y0=y0,y1=y1,var0=var0,var1=var1,x0=x0,x1=x1,s20=s20,s21=s21,
-	n0=n0,n1=n1,interaction=interaction,alpha=alpha,logOR=logOR,level=level)
- })
+
+       ipd.meta.power.base.function(type=x,
+	event0=event0,event1=event1,mean0=mean0,mean1=mean1,
+        var0=var0,var1=var1,x0=x0,x1=x1,s20=s20,s21=s21,
+	n0=n0,n1=n1,effect=effect,alpha=alpha)
+    })
 
     SE <- estimates[[1]]$estimated.se
     SE.l <- estimates[[2]]$estimated.se
@@ -44,26 +107,26 @@ return(
          sigma=estimates[[1]]$sigma,
          sigma0=estimates[[1]]$sigma0,
          sigma1=estimates[[1]]$sigma1,
-         level=level)
+         level=alpha)
          )
 }
 
 
 ipd.meta.power.base.function <- function(
-                             y0,
-                             y1,
-                             var0,
-                             var1,
+                             effect,
+                             event0=NULL,
+                             event1=NULL,
+                             mean0=NULL,
+                             mean1=NULL,
+                             var0=NULL,
+                             var1=NULL,
                              x0,
                              x1,
-                             s20,
-                             s21,
+                             s20=NULL,
+                             s21=NULL,
                              n0,
                              n1,
-                             interaction,
                              alpha=.05,
-                             logOR=TRUE,
-                             level=95,
                              type=c("point","lower","upper"))
 {
 
@@ -74,9 +137,20 @@ power <- function(beta,se,alpha=.05){
       return(pnorm(-z+beta/se)+pnorm(-z-beta/se))
 }
 
-get.weight <- function(logOR=TRUE,z){
+DSL <- function(y,var){
 
- if(logOR){
+  w <- 1/var
+  df <- length(y)-1
+  y.bar <- sum(w*y)/sum(w)
+  Q <- sum(w*(y-y.bar)^2)
+
+  max(c(0,(Q-df)/(sum(w)-sum(w^2)/sum(w))))
+  
+}
+
+get.weight <- function(BINARY=TRUE,z){
+
+ if(BINARY){
 
  theta.bar <- sum(exp(y0)/(1+exp(y0))*n0+exp(y1)/(1+exp(y1))*n1)/sum(n0+n1)
  w.se <- (1-2*theta.bar)*sqrt(theta.bar*(1-theta.bar)/sum(n0+n1))
@@ -211,72 +285,89 @@ c(d,e,f,g)
 )
 }
 
-#########
+#########PROCESSING
 
- if(!logOR){
-  #USE VARIANCES OF THE RESPONSE TO GET POOLED RESIDUAL VARIANCE EST
-  #WHEN DIFFERENCE IN MEANS THIS IS THE SAMPLE VARIANCE BY GROUP
- sigma <- sum(var0*(n0-1)+var1*(n1-1))/sum(n0+n1-2)
+ BINARY <- !is.null(event0)
+
+ if(!BINARY){
+  #SAMPLE VARIANCE PER STUDY; RESIDUAL ESTIMATE FOR LINEAR MODEL
+ sigma <- (var0*(n0-1)+var1*(n1-1))/(n0+n1-2)
+ y0 <- mean0
+ y1 <- mean1
   }
 else{
- sigma <- 1
+  #COMPUTE LOG-ODDS WITH CORRECTION FOR ZERO-EVENTS
+  events0 <- ifelse(event0==0,.5,event0)
+  events1 <- ifelse(event1==0,.5,event1)
+  events0 <- ifelse(event0==n0,event0-.5,event0)
+  events1 <- ifelse(event1==n1,event1-.5,event1)
+  
+  y0 <- log(event0/n0/(1-event0/n0))
+  y1 <- log(event1/n1/(1-event1/n1))
+  var0 <- 1/(event0/n0*(1-event0/n0))
+  var1 <- 1/(event1/n1*(1-event1/n1))
+  
+  sigma <- 1
  }
 
-fit0 <- rma(y0,var0/n0,mods=c(),method="REML")
-fit1 <- rma(y1,var1/n1,mods=c(),method="REML")
+tau20 <- DSL(y0,var0/n0)
+tau21 <- DSL(y1,var1/n1)
 
+#WALD-TYPE CONFIDENCE INTERVAL
+z <- qnorm((1-alpha/2))
+
+lower0 <- max(0,tau20-z*sqrt(2*1/(sum(n0/var0))))
+upper0 <- max(0,tau20+z*sqrt(2*1/(sum(n0/var0))))
+           
  #OBTAINING BETWEEN-STUDY VARIANCE COMPONENTS
 
 if(type=="point"){
- sigma0 <- fit0$tau2
- sigma1 <- fit1$tau2-sigma0
+ sigma0 <- tau20
+ sigma1 <- tau21-sigma0
  sigma1 <- max(c(0,sigma1))
- weight <- get.weight(logOR=logOR,z=0)
+ weight <- get.weight(BINARY=BINARY,z=0)
  }
 else if(type=="lower"){
 
-sigma0 <- confint(fit0,level=level)$ci.lb[1]
-sigma1 <- fit1$tau2-sigma0
-se.sigma1 <- fit1$se.tau2[1]+fit0$se.tau2[1]
-z.norm <- qnorm(1-level/200)
-sigma1 <- max(c(0,sigma1+z.norm*se.sigma1))
- #Reciprocal is smaller for upper bound on binomial variance
-weight <- get.weight(logOR=logOR,z=z.norm)
+sigma0 <- lower0
+sigma1 <- tau21-sigma0
+se.sigma1 <- sqrt(2/(sum(n1/var1))+2/(sum(n1/var1)))
+sigma1 <- max(c(0,sigma1-z*se.sigma1))
+weight <- get.weight(BINARY=BINARY,z=z)
+
  }
 else{
 
-sigma0 <- confint(fit0,level=level)$ci.ub[1]
-sigma1 <- fit1$tau2-sigma0
+sigma0 <- upper0
+sigma1 <- tau21-upper0
+se.sigma1 <- sqrt(2/(sum(n1/var1))+2/(sum(n1/var1)))
+sigma1 <- max(c(0,sigma1+z*se.sigma1))
+weight <- get.weight(BINARY=BINARY,z=-z)
 
-se.sigma1 <- fit1$se.tau2[1]+fit0$se.tau2[1]
-z.norm <- qnorm(1-level/200)
-sigma1 <- max(c(0,sigma1-z.norm*se.sigma1))
+}
 
-#Reciprocal is larger for lower bound on binomial variance
-weight <- get.weight(logOR=logOR,z=-z.norm)
- }
-
-inverse.components <- mapply(me.inverse,n=n0,m=n1,
-MoreArgs=list(a=sigma,b=sigma0,c=(sigma0+sigma1)))
+inverse.components <- mapply(me.inverse,n=n0,m=n1,a=sigma,
+                             MoreArgs=list(b=sigma0,c=(sigma0+sigma1)))
 
 d <- inverse.components[1,]
 e <- inverse.components[2,]
 f <- inverse.components[3,]
 g <- inverse.components[4,]
 
+
 Info <- construct.beta.info.matrix(n0,n1,x0,x1,s20,s21,d,e,f,g)
 
 SE <- sqrt(solve(Info)[4,4])*sqrt(weight)
-power <- power(beta=interaction,se=SE,alpha=alpha)
+power <- power(beta=effect,se=SE,alpha=alpha)
 
 return(
        list(
        estimated.power=power,
        estimated.se=SE,
-       sigma=sigma,
+       sigma=mean(sigma),
        sigma0=sigma0,
        sigma1=sigma1,
-       level=level)
+       level=alpha)
        )
 }
 

@@ -8,7 +8,7 @@
 Meta-analytic dataset of 4 trials of Beta-adrenergic-antagonist drugs in the prevention of gastrointestinal bleeding in
   patients with cirrhosis and esophageal varices.
 
-Dataset used to illustrate power estimator \code{\link{ipd.meta.power}}
+Dataset used to illustrate power estimator \code{\link{ipd.sep}}
 }
 
 
