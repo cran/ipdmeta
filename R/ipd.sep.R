@@ -148,7 +148,7 @@ DSL <- function(y,var){
   
 }
 
-get.weight <- function(BINARY=TRUE,z){
+get.weight <- function(y0,y1,n0,n1,BINARY=TRUE,z){
 
  if(BINARY){
 
@@ -297,10 +297,10 @@ c(d,e,f,g)
   }
 else{
   #COMPUTE LOG-ODDS WITH CORRECTION FOR ZERO-EVENTS
-  events0 <- ifelse(event0==0,.5,event0)
-  events1 <- ifelse(event1==0,.5,event1)
-  events0 <- ifelse(event0==n0,event0-.5,event0)
-  events1 <- ifelse(event1==n1,event1-.5,event1)
+  event0 <- ifelse(event0==0,.5,event0)
+  event1 <- ifelse(event1==0,.5,event1)
+  event0 <- ifelse(event0==n0,event0-.5,event0)
+  event1 <- ifelse(event1==n1,event1-.5,event1)
   
   y0 <- log(event0/n0/(1-event0/n0))
   y1 <- log(event1/n1/(1-event1/n1))
@@ -325,7 +325,7 @@ if(type=="point"){
  sigma0 <- tau20
  sigma1 <- tau21-sigma0
  sigma1 <- max(c(0,sigma1))
- weight <- get.weight(BINARY=BINARY,z=0)
+ weight <- get.weight(y0,y1,n0,n1,BINARY=BINARY,z=0)
  }
 else if(type=="lower"){
 
@@ -333,7 +333,7 @@ sigma0 <- lower0
 sigma1 <- tau21-sigma0
 se.sigma1 <- sqrt(2/(sum(n1/var1))+2/(sum(n1/var1)))
 sigma1 <- max(c(0,sigma1-z*se.sigma1))
-weight <- get.weight(BINARY=BINARY,z=z)
+weight <- get.weight(y0,y1,n0,n1,BINARY=BINARY,z=z)
 
  }
 else{
@@ -342,7 +342,7 @@ sigma0 <- upper0
 sigma1 <- tau21-upper0
 se.sigma1 <- sqrt(2/(sum(n1/var1))+2/(sum(n1/var1)))
 sigma1 <- max(c(0,sigma1+z*se.sigma1))
-weight <- get.weight(BINARY=BINARY,z=-z)
+weight <- get.weight(y0,y1,n0,n1,BINARY=BINARY,z=-z)
 
 }
 
