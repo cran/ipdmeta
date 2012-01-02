@@ -3,28 +3,25 @@
 \docType{package}
 
 \title{
-Individual patient and Mixed-level Meta-analysis of
-Time-to-Event Outcomes
+Functions for characterizing subgroup analyses with meta-analysis
 }
 \description{
-Functions to estimate the power of an IPD meta-analysis covariate-treatment
-interaction (continuous or binary outcome), perform complete IPD meta-analysis and mixed-level
-meta-analysis with a survival outcome. 
+Assess heterogeneity of covariates defining subgroups; estimate the power of a treatment-covariate interaction for an individual patient data meta-analysis using aggregate data
 }
 
 \details{
 \tabular{ll}{
 Package: \tab ipdmeta\cr
 Type: \tab Package\cr
-Version: \tab 1.1\cr
-Date: \tab 2010-10-04\cr
+Version: \tab 2.2\cr
+Date: \tab 2010-1-02\cr
 License: \tab GPL 2\cr
 LazyLoad: \tab yes\cr
 }
 }
 \author{
  
-Maintainer: Stephanie A. Kovalchik <skoval@ucla.edu>
+Maintainer: Stephanie A. Kovalchik <s.a.kovalchik@gmail.com>
 
 }
 

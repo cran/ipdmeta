@@ -33,7 +33,7 @@ A list with the following named components: \code{t}, \code{Qd}, \code{Qe}, \cod
 
 }
 
-\author{S. Kovalchik \email{skoval@ucla.edu}}
+\author{S. Kovalchik \email{s.a.kovalchik@gmail.com}}
 
 \examples{
 

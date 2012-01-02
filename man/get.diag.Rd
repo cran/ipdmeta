@@ -29,7 +29,7 @@ elements of an identity matrix. Thus if x is scalar or vector it is
 simply returned.
 }
 
-\author{S. Kovalchik \email{skoval@ucla.edu}}
+\author{S. Kovalchik \email{s.a.kovalchik@gmail.com}}
 
 \seealso{\code{\link{diag}}}
 

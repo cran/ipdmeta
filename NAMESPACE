@@ -1,15 +1,5 @@
 export(
-"bas.haz",
-"ci",
-"beta.indices",
-"coxmcem",
-"mlma",
 "get.diag",
-"which.formula",
-"cluster.subvector.matrix",
-"frailty.model.matrix",
-"make.clustered.ipd",
-"surv.covariance.variance",
 "ipd.sep",
 "Qt"
 )

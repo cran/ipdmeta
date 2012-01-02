@@ -40,5 +40,5 @@ Poynard, T, Cales, P, Pasta, L, Ideo, G, Pascal, J P, Pagliaro, L, Lebrec, D, (1
 }
 
 
-\author{S. Kovalchik \email{skoval@ucla.edu}}
+\author{S. Kovalchik \email{s.a.kovalchik@gmail.com}}
 
