@@ -1,0 +1,6 @@
+*** Version 2.3 ***
+
+Methods for estimating an IPD linear mixed effects model from study-level data have been added. See the manual page for ipdlme. 
+
+
+

@@ -1,5 +1,36 @@
+importFrom("nlme", fixef, ranef)
+importFrom("graphics", plot)
+importFrom("stats",
+           coef,
+           confint,
+           vcov
+           )
+
+exportClasses("ipdlme")
+
 export(
-"get.diag",
 "ipd.sep",
-"Qt"
+"Qt",
+"ipdlme"
 )
+
+exportMethods(
+              "print",
+              "show",
+              "fixef",
+              "ranef",
+              "sigma2",
+              "Var",
+              "VcovFixef",
+              "VcovRanef",
+              "convergence",
+              "converged",
+              "n.iter",
+              "MaxIter",
+              "tol",
+              "coef",
+              "vcov",
+              "summary",
+              "confint",
+              "plot"
+              )
