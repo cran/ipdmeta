@@ -5,7 +5,7 @@
 Fits the IPD linear mixed-effects model for a treatment and single categorical covariate and their interaction using study-level summary statistics.
 }
 \usage{
-ipdlme(n, y, s2, max.iter = 100, tol = 1e-10) 
+ipdlme(n, y, s2, max.iter = 100, tol = 1e-10,equal.residual.var=TRUE) 
 }
 \arguments{
   \item{n}{a list ordered by trial with each element a data frame having the columns \code{trt} and \code{ctrl} and the row the sample sizes in each group for the covariate of interest, e.g. males/females, never/former/current smokers.}
@@ -14,6 +14,7 @@ ipdlme(n, y, s2, max.iter = 100, tol = 1e-10)
 \item{s2}{A vector of the study overall sample variances for the outcome or a list of the treatment-subgroup sample variances following the structure of \code{n} and \code{y}.}
 \item{max.iter}{An integer indicating the maximum number of iterations to perform in the optimization algorithm}
 \item{tol}{A numeric value that is used for the termination rule (see details).}
+\item{equal.residual.var}{logical, indicates whether the residual variances for the outcomes are assumed constant between studies or are heterogeneous}
 }
 
 \details{
@@ -30,7 +31,7 @@ ipdlme(n, y, s2, max.iter = 100, tol = 1e-10)
 
 \value{
   An object of class \code{\link{ipdlme-class}}, for which a number of methods
-  are available.  See there for details.
+  are available.
 }
 
 \seealso{
@@ -40,7 +41,21 @@ ipdlme(n, y, s2, max.iter = 100, tol = 1e-10)
 \examples{
 data(regress_age)
 
+# Homogeneous residual variance
 metafit <- ipdlme(n,Y,S2)
+
+summary(metafit)
+
+fixef(metafit)
+confint(metafit)
+
+ranef(metafit)
+
+labs <- paste("Center",c(1,10,11,2:9))
+plot(metafit, y=labs)
+
+#Heterogeneous residual variance
+metafit <- ipdlme(n,Y,S2,equal=FALSE)
 
 summary(metafit)
 

@@ -2,5 +2,11 @@
 
 Methods for estimating an IPD linear mixed effects model from study-level data have been added. See the manual page for ipdlme. 
 
+*** Version 2.4 ***
+
+Option added to ipdlme to allow heterogeneous residual variance with option equal.resid.var.
+
+
+
 
 

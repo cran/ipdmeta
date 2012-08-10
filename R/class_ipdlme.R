@@ -21,15 +21,15 @@ setClass("ipdlme",
 
 print_ipdlme <- function(x,...)
 {
-  	cat("Fixed effects:\n\n")
+  	cat("Fixed effects:\n")
 	print(x@fixef)
 	
-	cat("Random effects:\n\n")
+	cat("\nRandom effects:\n")
 	print(x@ranef)
 	
-	cat("Residual variance:\t",x@sigma2,"\n\n")
+	cat("\nResidual variances:\t",x@sigma2)
 	
-	cat("Between-study variance:\n\n")
+	cat("\nBetween-study variance:\n")
 	
 	print(x@VarCorr)
 }
@@ -53,12 +53,12 @@ setMethod("summary", signature(object = "ipdlme"),
   
 		 print(coefs)  
          
-         cat("\nRandom effects:\n\n")
+         cat("\nRandom effects:\n")
 		print(object@ranef)
 	
-		cat("Residual variance:\t",object@sigma2,"\n\n")
+		cat("\nResidual variance:\t",object@sigma2,"\n")
 	
-		cat("Between-study variance:\n\n")
+		cat("\nBetween-study variance:\n")
 	
 		print(object@VarCorr)
 

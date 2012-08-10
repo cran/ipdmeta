@@ -121,6 +121,7 @@ ipd_lme_ranef_study <- function(n,y.bar,fixef,sigma2,D){
 	R <- Y-X%*%fixef$fixef
 	beta <-  DZW%*%R
 	V <- D%*%t(Z)%*%(W0-W0%*%X%*%fixef$vcov%*%t(X)%*%W0)%*%Z%*%D
+	V <- D-D%*%t(Z)%*%W0%*%Z%*%D+V
 	
 	list(
 		ranef = beta,
@@ -199,20 +200,6 @@ ipd_lme_subgroup_sigma2_study <- function(n,y,s2,beta,alpha){
 S2+SS
 }
 
-ipd_lme_sigma2_study <- function(n,y,s2,beta,alpha){
-	
-	# STUDY INTERCEPT AND SLOPE
-	N <- sum(c(n$trt,n$ctrl))
-	y.bar <- sum(c(y$trt,y$ctrl)*c(n$trt,n$ctrl))/N	
-	Y <- rep(y.bar,N)
-	X <- design.matrix(n)
-	Z <- X[,1:2]
-	mu <- X%*%beta+Z%*%alpha
-	SS <- t(Y-mu)%*%(Y-mu)
-	Q <- (N-1)*s2-SS
-
-Q
-}
 
 ipd_lme_sigma2 <- function(n,y,beta,alphas,s2){
 
@@ -226,15 +213,15 @@ ipd_lme_sigma2 <- function(n,y,beta,alphas,s2){
 	N <- sapply(n,function(x)sum(c(x$trt,x$ctrl)))
 	N <- sum(N)
 	
-sum(Qs)/(N-2*(length(alphas)-1))
+sum(Qs)/N
 }
 
-ipd_lme_D <- function(alphas,beta){
+ipd_lme_D <- function(alphas){
 	
-	Q <- sapply(alphas,function(x)outer(x-beta[1:2],x-beta[1:2]))
+	Q <- sapply(alphas,function(x)outer(x,x))
 	Q <- matrix(rowSums(Q),2,2)
-	
-Q/length(alphas)
+
+Q/(length(alphas)-1)
 }
 
 initialize_vcov <- function(n, y, s2){
@@ -260,7 +247,7 @@ initialize_vcov <- function(n, y, s2){
 		)	
 }
 
-ipdlme <- function(n, y, s2,max.iter=100,tol=1e-10){
+ipdlme.homo <- function(n, y, s2,max.iter=100,tol=1e-10){
 	
 	vcov.init <- initialize_vcov(n, y, s2)
 	beta.trace <- NULL
@@ -279,7 +266,7 @@ ipdlme <- function(n, y, s2,max.iter=100,tol=1e-10){
     	# UPDATE VARIANCE COMPONENTS
 		alphas <- lapply(alpha,function(x)x$ranef)
 		vcov.init$sigma2 <- ipd_lme_sigma2(n,y,s2,alphas=alphas,beta=beta$fixef)
-		vcov.init$D <- ipd_lme_D(alphas,beta$fixef)
+		vcov.init$D <- ipd_lme_D(alphas)
 
 		beta.trace <- cbind(beta.trace,beta$fixef)
 		alpha.trace <- cbind(alpha.trace,unlist(alphas))
@@ -333,3 +320,12 @@ ipdlme <- function(n, y, s2,max.iter=100,tol=1e-10){
 		)
 }
 
+ipdlme <- function(n, y, s2,max.iter=100,tol=1e-10,equal.residual.var=TRUE){
+	
+	if(equal.residual.var)
+		fit <- ipdlme.homo(n, y, s2,max.iter,tol)
+	else
+		fit <- ipdlme.hetero(n, y, s2,max.iter,tol)
+
+fit
+}

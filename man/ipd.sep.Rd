@@ -29,8 +29,6 @@ ipd.sep(
 
 \arguments{
 
-All vector entries are grouped by study.
-
   \item{effect}{scalar, subgroup effect under alternative hypothesis}
   \item{event0}{vector, for binary outcome, events in group 0}
   \item{event1}{vector, for binary outcome, events in group 1}

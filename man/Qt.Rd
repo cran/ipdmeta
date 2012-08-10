@@ -13,8 +13,6 @@ Qt(m,n,sigma2)
 
 \arguments{
 
-All vector entries are grouped by study.
-
   \item{m}{vector of study-level covariate means}
   \item{n}{vector of study sample sizes}
   \item{sigma2}{vector of covariate sample variances}
